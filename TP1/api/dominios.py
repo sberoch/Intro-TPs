@@ -1,13 +1,14 @@
 from flask import abort, make_response
+import dns.resolver
+
 
 # Data to serve with our API
 domains = {
-    1: {
-        'id':1,
+    'fi.uba.ar': {
         'domain': 'fi.uba.ar',
         'ips': ['12.12.12.12'],
         'lastAccesedIP': 0,
-        'custom': False
+        'custom': True
     },
 }
 
@@ -23,27 +24,24 @@ def remove_extra_ips(domain):
 		'custom': domain['custom']
 	}
 
-# Create a handler for our read (GET) people
-def obtener_todos():
+def obtener_uno(domain):
     """
-    Esta funcion maneja el request GET /api/domains
+    Esta funcion maneja el request GET /api/domains/{dominio}
 
-    :return:        200 lista ordenada alfabeticamente de domains de la materia
+     :domain body:  nombre del dominio a obtener su ip
+    :return:        200 dominio e ip, 404 dominio no encontrado
     """
-    # Create the list of people from our data
-    return [remove_extra_ips(d) for d in domains.values()]
 
-def obtener_uno(id_alumno):
-    """
-    Esta funcion maneja el request GET /api/domains/{id_alumno}
+    found_domain = domains.get(domain)
 
-     :id_alumno body:  id del alumno que se quiere obtener
-    :return:        200 alumno, 404 alumno no encontrado
-    """
-    if id_alumno not in domains:
-        return abort(404, 'El alumno no fue encontrado')
+    if found_domain:
+        return remove_extra_ips(found_domain)
 
-    return domains.get(id_alumno)
+    result = dns.resolver.query('www.yahoo.com')
+    for answer in result.response.answer:
+        print(answer)
+
+    return abort(500, "en desarrollo")
 
 def crear(**kwargs):
     """
