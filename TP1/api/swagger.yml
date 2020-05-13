@@ -42,9 +42,7 @@ components:
       properties:
         domain:
           type: "string"
-        ips:
-          type: "array"
-        lastAccesedIP:
-          type: "integer"
+        ip:
+          type: "string"
         custom:
           type: "boolean"
