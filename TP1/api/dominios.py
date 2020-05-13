@@ -24,6 +24,14 @@ def remove_extra_ips(domain):
 		'custom': domain['custom']
 	}
 
+def new_domain(domain_name, ips, is_custom):
+    return {
+        'domain': domain_name,
+        'ips': ips,
+        'lastAccesedIP': 0,
+        'custom': is_custom
+    }
+
 def obtener_uno(domain):
     """
     Esta funcion maneja el request GET /api/domains/{dominio}
@@ -37,11 +45,22 @@ def obtener_uno(domain):
     if found_domain:
         return remove_extra_ips(found_domain)
 
-    result = dns.resolver.query('www.yahoo.com')
-    for answer in result.response.answer:
-        print(answer)
+    # lanza NXDOMAIN si no existe
+    try:
+        result = dns.resolver.query(domain)
+    except dns.resolver.NXDOMAIN:
+        return abort(404, {"error": "domain not found"})
 
-    return abort(500, "en desarrollo")
+    ips = []
+    for ip in result:
+        ips.append((ip.to_text()))
+
+    domains[domain] = new_domain(domain, ips, is_custom=False)
+
+    return remove_extra_ips(domains[domain])
+
+
+# CODIGO DE TEMPLATE:
 
 def crear(**kwargs):
     """
