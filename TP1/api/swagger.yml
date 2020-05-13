@@ -17,6 +17,13 @@ paths:
         - "Dominios"
       summary: "Dominio"
       description: "Obtiene la IP asociada a un dominio en particular"
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: El domain para el cual quiero obtener su IP.
       responses:
         200:
           description: "IP obtenida exitosamente"
