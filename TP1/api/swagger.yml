@@ -33,6 +33,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/domain'
+        404:
+          description: "No se encontro la IP"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/error'
 
 # Declaración de tipos de datos
 components:
@@ -46,3 +54,7 @@ components:
           type: "string"
         custom:
           type: "boolean"
+    error:
+      type: "object"
+      properties:
+        error: "string"
