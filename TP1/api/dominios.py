@@ -41,35 +41,49 @@ def obtener_uno(domain):
     return remove_extra_ips(domains[domain])
 
 
-# CODIGO DE TEMPLATE:
-
 def crear(**kwargs):
     """
     Esta funcion maneja el request POST /api/domains
 
-     :param body:  alumno a crear en la lista de domains
-    :return:        201 alumno creado, 400 dni o padron duplicado
+     :param body:  dominio a crear en la lista de domains
+    :return:        201 dominio creado, 400 custom domain already exists
     """
-    alumno = kwargs.get('body')
-    dni = alumno.get('dni')
-    padron = alumno.get('padron')
-    nombre = alumno.get('nombre')
-    if not dni or not padron or not nombre:
-        return abort(400, 'Faltan datos para crear un alumno')
+    body = kwargs.get('body')
+    domain = body.get('domain')
+    ip = body.get('ip')
 
-    dup = False
-    for alumno_existente in domains.values():
-        dup = dni == alumno_existente.get('dni') or padron == alumno_existente.get('padron')
-        if dup: break
+    if domain in domains:
+        if domains[domain]['custom'] == True:
+            return abort(400, {"error": "custom domain already exists"})
 
-    if dup:
-        return abort(400, 'DNI o Padron ya existentes')
+    body['custom'] = True
+    domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
 
-    new_id = max(domains.keys()) + 1
-    alumno['id'] = new_id
-    domains[new_id] = alumno
+    return make_response(body, 201)
 
-    return make_response(alumno, 201)
+def actualizar(**kwargs):
+    """
+    Esta funcion maneja el request PUT /api/domains
+
+     :param body:  dominio a actualizar en la lista de domains
+    :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
+    """
+    body = kwargs.get('body')
+    domain = body.get('domain')
+    ip = body.get('ip')
+
+    if not domain or not ip:
+        return abort(400, "payload is invalid")
+
+    if domain not in domains:
+        return abort(404, {"error": "domain not found"})
+
+    body['custom'] = True
+    domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
+
+    return make_response(body, 201)
+
+# CODIGO DE TEMPLATE:
 
 def borrar(id_alumno):
     """
