@@ -89,20 +89,13 @@ def buscar_custom(q=''):
     """
     Esta funcion maneja el request GET /api/custom-domains?q=<string>
 
-     :param body:  dominio a actualizar en la lista de domains
-    :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
+     :param q:  filtro a aplicar sobre los nombres custom encontrados
+    :return:        200 lista de dominios custom hallados
     """
 
-    # if not domain or not ip:
-    #     return make_response({"error":"payload is invalid"}, 400)
+    matching_custom = [c for c in domains.values() if c['custom'] and q in c['domain']]
 
-    # if domain not in domains:
-    #     return make_response({"error": "domain not found"}, 404)
-
-    # body['custom'] = True
-    # domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
-
-    return make_response(q, 200)
+    return make_response({'items':matching_custom}, 200)
 
 
 
