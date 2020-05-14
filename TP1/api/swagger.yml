@@ -15,7 +15,7 @@ paths:
       operationId: "api.dominios.obtener_uno"
       tags:
         - "Dominios"
-      summary: "Dominio"
+      summary: "Obtener IP"
       description: "Obtiene la IP asociada a un dominio en particular"
       parameters:
         - in: path
@@ -23,24 +23,116 @@ paths:
           required: true
           schema:
             type: string
-          description: El domain para el cual quiero obtener su IP.
+          description: El dominio para el cual quiero obtener su IP.
       responses:
         '200':
-          description: "Success"
+          description: "Ok"
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/domain'
+                $ref: '#/components/schemas/domain'
         '404':
           description: "Not found"
           content:
             application/json:
               schema:
-                type: object
-                items:
-                  $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/error'
+
+  /custom-domains:
+    post:
+      operationId: "api.dominios.crear"
+      tags:
+        - "Dominios"
+      summary: "Nuevo Dominio Custom"
+      description: "Crea una entrada para sobreescribir la IP de un dominio en particular"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/inputCustomDomain'
+      responses:
+        '201':
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/domain'
+        '400':
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /custom-domains/{domain}:
+    put:
+      operationId: "api.dominios.actualizar"
+      tags:
+        - "Dominios"
+      summary: "Actualizar Dominio"
+      description: "Edita un dominio ya existente en el sistema."
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: El dominio que quiero editar.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/inputCustomDomain'
+      responses:
+        '200':
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/domain'
+        '404':
+          description: "Not Found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        '400':
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+    delete:
+      operationId: "api.dominios.borrar"
+      tags:
+        - "Dominios"
+      summary: "Borar Dominio"
+      description: "Borra un dominio existente en el sistema."
+      parameters:
+        - in: path
+          name: domain
+          required: true
+          schema:
+            type: string
+          description: El dominio que quiero borrar.
+      responses:
+        '200':
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  domain: 
+                    type: "string"
+        '404':
+          description: "Not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
 
 # Declaración de tipos de datos
 components:
@@ -58,4 +150,11 @@ components:
       type: "object"
       properties:
         error: 
+          type: "string"
+    inputCustomDomain:
+      type: "object"
+      properties:
+        domain:
+          type: "string"
+        ip:
           type: "string"

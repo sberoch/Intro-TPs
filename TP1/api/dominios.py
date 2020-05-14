@@ -81,7 +81,7 @@ def actualizar(**kwargs):
     body['custom'] = True
     domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
 
-    return make_response(body, 201)
+    return make_response(body, 200)
 
 # CODIGO DE TEMPLATE:
 
