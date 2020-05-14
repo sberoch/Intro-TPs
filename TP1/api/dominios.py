@@ -93,7 +93,7 @@ def buscar_custom(q=''):
     :return:        200 lista de dominios custom hallados
     """
 
-    matching_custom = [c for c in domains.values() if c['custom'] and q in c['domain']]
+    matching_custom = [remove_extra_ips(c) for c in domains.values() if c['custom'] and q in c['domain']]
 
     return make_response({'items':matching_custom}, 200)
 
