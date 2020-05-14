@@ -30,7 +30,7 @@ def obtener_uno(domain):
     try:
         result = dns.resolver.query(domain)
     except dns.resolver.NXDOMAIN:
-        return abort(404, {"error": "domain not found"})
+        return make_response({"error": "domain not found"},404)
 
     ips = []
     for ip in result:
