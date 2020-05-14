@@ -43,7 +43,7 @@ def obtener_uno(domain):
 
 def crear(**kwargs):
     """
-    Esta funcion maneja el request POST /api/domains
+    Esta funcion maneja el request POST /api/custom-domains
 
      :param body:  dominio a crear en la lista de domains
     :return:        201 dominio creado, 400 custom domain already exists
@@ -54,7 +54,7 @@ def crear(**kwargs):
 
     if domain in domains:
         if domains[domain]['custom'] == True:
-            return abort(400, {"error": "custom domain already exists"})
+            return make_response({"error": "custom domain already exists"}, 400)
 
     body['custom'] = True
     domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
@@ -63,7 +63,7 @@ def crear(**kwargs):
 
 def actualizar(**kwargs):
     """
-    Esta funcion maneja el request PUT /api/domains
+    Esta funcion maneja el request PUT /api/custom-domains
 
      :param body:  dominio a actualizar en la lista de domains
     :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
@@ -73,15 +73,38 @@ def actualizar(**kwargs):
     ip = body.get('ip')
 
     if not domain or not ip:
-        return abort(400, "payload is invalid")
+        return make_response({"error":"payload is invalid"}, 400)
 
     if domain not in domains:
-        return abort(404, {"error": "domain not found"})
+        return make_response({"error": "domain not found"}, 404)
 
     body['custom'] = True
     domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
 
     return make_response(body, 200)
+
+
+
+def buscar_custom(q=''):
+    """
+    Esta funcion maneja el request GET /api/custom-domains?q=<string>
+
+     :param body:  dominio a actualizar en la lista de domains
+    :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
+    """
+
+    # if not domain or not ip:
+    #     return make_response({"error":"payload is invalid"}, 400)
+
+    # if domain not in domains:
+    #     return make_response({"error": "domain not found"}, 404)
+
+    # body['custom'] = True
+    # domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
+
+    return make_response(q, 200)
+
+
 
 # CODIGO DE TEMPLATE:
 

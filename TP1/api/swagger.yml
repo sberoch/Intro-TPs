@@ -64,6 +64,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+    get:
+      operationId: "api.dominios.buscar_custom"
+      tags:
+        - "Dominios"
+      summary: "Buscar dominios custom existentes"
+      description: "Buscar en la base de datos todos los dominios custom que contengan la query en su nombre"
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: false
+          description: "Mostrar solo los custom domain que tengan esta query en su nombre."
+      responses:
+        '200':
+          description: "Ok"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/customDomainList'  
+
 
   /custom-domains/{domain}:
     put:
@@ -92,18 +113,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/domain'
-        '404':
-          description: "Not Found"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
-        '400':
-          description: "Bad Request"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/error"
+
     delete:
       operationId: "api.dominios.borrar"
       tags:
@@ -138,23 +148,31 @@ paths:
 components:
   schemas:
     domain:
-      type: "object"
+      type: object
       properties:
         domain:
-          type: "string"
+          type: string
         ip:
-          type: "string"
+          type: string
         custom:
-          type: "boolean"
+          type: boolean
     error:
-      type: "object"
+      type: object
       properties:
         error: 
-          type: "string"
+          type: string
     inputCustomDomain:
-      type: "object"
+      type: object
       properties:
         domain:
-          type: "string"
+          type: string
         ip:
-          type: "string"
+          type: string
+    customDomainList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/domain'
+
