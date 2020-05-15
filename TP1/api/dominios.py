@@ -52,6 +52,8 @@ def crear(**kwargs):
     domain = body.get('domain')
     ip = body.get('ip')
 
+    if not domain or not ip:
+        return make_response({"error": "custom domain already exists"}, 400)
     if domain in domains:
         if domains[domain]['custom'] == True:
             return make_response({"error": "custom domain already exists"}, 400)
@@ -61,7 +63,7 @@ def crear(**kwargs):
 
     return make_response(body, 201)
 
-def actualizar(**kwargs):
+def actualizar(domain, **kwargs):
     """
     Esta funcion maneja el request PUT /api/custom-domains
 
@@ -69,17 +71,17 @@ def actualizar(**kwargs):
     :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
     """
     body = kwargs.get('body')
-    domain = body.get('domain')
+    new_domain = body.get('domain')
     ip = body.get('ip')
 
-    if not domain or not ip:
+    if not new_domain or not ip:
         return make_response({"error":"payload is invalid"}, 400)
 
     if domain not in domains:
         return make_response({"error": "domain not found"}, 404)
 
     body['custom'] = True
-    domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
+    domains[domain] = {'domain': new_domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
 
     return make_response(body, 200)
 
