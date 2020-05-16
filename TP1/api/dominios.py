@@ -103,16 +103,17 @@ def buscar_custom(q=''):
 
 # CODIGO DE TEMPLATE:
 
-def borrar(id_alumno):
+def borrar(domain):
     """
-    Esta funcion maneja el request DELETE /api/domains/{id_alumno}
+    Esta funcion maneja el request DELETE /api/domains/{dominio}
 
-    :id_alumno body:  id del alumno que se quiere borrar
-    :return:        200 alumno, 404 alumno no encontrado
+    :domain body: dominio que se quiere borrar
+    :return:        200 dominio, 404 dominio no encontrado
     """
-    if id_alumno not in domains:
-        return abort(404, 'El alumno no fue encontrado')
 
-    del domains[id_alumno]
+    if domain not in domains or domains[domain]['custom'] == False:
+        return make_response({"error": "domain not found"},404)
 
-    return make_response('', 204)
+    del domains[domain]
+
+    return make_response({"domain": domain}, 200)
