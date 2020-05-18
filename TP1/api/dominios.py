@@ -59,7 +59,7 @@ def crear(**kwargs):
             return make_response({"error": "custom domain already exists"}, 400)
 
     body['custom'] = True
-    domains[domain] = {'domain': domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
+    domains[domain] = new_domain(domain, [ip], is_custom=True)
 
     return make_response(body, 201)
 
@@ -71,17 +71,17 @@ def actualizar(domain, **kwargs):
     :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
     """
     body = kwargs.get('body')
-    new_domain = body.get('domain')
+    new_domain_name = body.get('domain')
     ip = body.get('ip')
 
-    if not new_domain or not ip:
+    if not new_domain_name or not ip:
         return make_response({"error":"payload is invalid"}, 400)
 
     if domain not in domains:
         return make_response({"error": "domain not found"}, 404)
 
     body['custom'] = True
-    domains[domain] = {'domain': new_domain, 'ips': [ip], 'lastAccesedIP': 0, 'custom': True}
+    domains[domain] = new_domain(new_domain_name, [ip], is_custom=True)
 
     return make_response(body, 200)
 
@@ -100,8 +100,6 @@ def buscar_custom(q=''):
     return make_response({'items':matching_custom}, 200)
 
 
-
-# CODIGO DE TEMPLATE:
 
 def borrar(domain):
     """
