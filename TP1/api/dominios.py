@@ -17,7 +17,7 @@ def obtener_uno(domain):
     """
     Esta funcion maneja el request GET /api/domains/{dominio}
 
-     :domain body:  nombre del dominio a obtener su ip
+     :param domain:  nombre del dominio a obtener su ip
     :return:        200 dominio e ip, 404 dominio no encontrado
     """
 
@@ -45,15 +45,15 @@ def crear(**kwargs):
     """
     Esta funcion maneja el request POST /api/custom-domains
 
-     :param body:  dominio a crear en la lista de domains
-    :return:        201 dominio creado, 400 custom domain already exists
+     :param kwargs:  dominio a crear en la lista de domains y la ip
+    :return:        201 dominio creado, 400 dominio no encontrado, 400 cuerpo invalido
     """
     body = kwargs.get('body')
     domain = body.get('domain')
     ip = body.get('ip')
 
     if not domain or not ip:
-        return make_response({"error": "custom domain already exists"}, 400)
+        return make_response({"error": "payload is invalid"}, 400)
     if domain in domains:
         if domains[domain]['custom'] == True:
             return make_response({"error": "custom domain already exists"}, 400)
@@ -65,23 +65,23 @@ def crear(**kwargs):
 
 def actualizar(domain, **kwargs):
     """
-    Esta funcion maneja el request PUT /api/custom-domains
+    Esta funcion maneja el request PUT /api/custom-domains/{dominio}
 
-     :param body:  dominio a actualizar en la lista de domains
+     :param kwargs:  dominio a actualizar en la lista de domains y la nueva ip
     :return:        200 dominio actualizado, 404 dominio no encontrado, 400 cuerpo invalido
     """
     body = kwargs.get('body')
-    new_domain_name = body.get('domain')
+    domain_name = body.get('domain')
     ip = body.get('ip')
 
-    if not new_domain_name or not ip:
+    if not domain_name or not ip or domain_name != domain:
         return make_response({"error":"payload is invalid"}, 400)
 
     if domain not in domains:
         return make_response({"error": "domain not found"}, 404)
 
     body['custom'] = True
-    domains[domain] = new_domain(new_domain_name, [ip], is_custom=True)
+    domains[domain] = new_domain(domain, [ip], is_custom=True)
 
     return make_response(body, 200)
 
@@ -103,9 +103,9 @@ def buscar_custom(q=''):
 
 def borrar(domain):
     """
-    Esta funcion maneja el request DELETE /api/domains/{dominio}
+    Esta funcion maneja el request DELETE /api/custom-domains/{dominio}
 
-    :domain body: dominio que se quiere borrar
+    :param domain: dominio que se quiere borrar
     :return:        200 dominio, 404 dominio no encontrado
     """
 
