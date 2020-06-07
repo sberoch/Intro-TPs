@@ -18,6 +18,12 @@ def upload_file(server_address, src, name):
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   sock.connect(server_address)
 
+  sock.send(b'upload')
+  confirmation = sock.recv(CHUNK_SIZE)
+  assert confirmation == b'ok'
+
+  sock.send(name.encode())
+
   sock.send(str(size).encode())
   signal = sock.recv(CHUNK_SIZE)
 
@@ -31,10 +37,7 @@ def upload_file(server_address, src, name):
       break
     sock.send(chunk)
 
-  # Recv amount of data received by the server
-  num_bytes = sock.recv(CHUNK_SIZE)
-
-  print("Server received {} bytes".format(num_bytes.decode()))
+  print("Sent files")
 
   f.close()
   sock.close()
