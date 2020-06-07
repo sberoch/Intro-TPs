@@ -7,7 +7,12 @@ def upload_file(server_address, src, name):
   # TODO: Implementar TCP upload_file client
   print('TCP: upload_file({}, {}, {})'.format(server_address, src, name))
 
-  f = open(src, "rb")
+  try:
+    f = open(src, "rb")
+  except FileNotFoundError:
+    print(f"File {src} not found.")
+    return exit(1)
+
   f.seek(0, os.SEEK_END)
   size = f.tell()
   f.seek(0, os.SEEK_SET)
@@ -23,6 +28,8 @@ def upload_file(server_address, src, name):
   assert confirmation == b'ok'
 
   sock.send(name.encode())
+  conf = sock.recv(CHUNK_SIZE)
+  assert conf == b'init'
 
   sock.send(str(size).encode())
   signal = sock.recv(CHUNK_SIZE)
