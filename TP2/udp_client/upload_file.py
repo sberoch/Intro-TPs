@@ -6,6 +6,11 @@ CHUNK_SIZE = 1024
 
 def upload_file(server_address, src, name):
   # TODO: Implementar UDP upload_file client
+
+  if not os.path.exists(src):
+    print("File not found")
+    return exit(1)
+
   print('UDP: upload_file({}, {}, {})'.format(server_address, src, name))
 
   f = open(src, "rb")
@@ -17,6 +22,7 @@ def upload_file(server_address, src, name):
 
   # Create socket and connect to server
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  sock.settimeout(0.2)
 
   sock.sendto(b'upload', server_address)
   signal, addr = sock.recvfrom(CHUNK_SIZE)
@@ -31,7 +37,7 @@ def upload_file(server_address, src, name):
     print("There was an error on the server")
     return exit(1)
 
-  upload_data(sock)
+  upload_data(sock, f, server_address)
 
   # Recv amount of data received by the server
   num_bytes, addr = sock.recvfrom(CHUNK_SIZE)
@@ -40,7 +46,10 @@ def upload_file(server_address, src, name):
   f.close()
   sock.close()
 
-def upload_data(sock):
+def upload_data(sock, f, server_address):
+
+  #checksum:data
+
   packet = ''
   seq_no = 0
   while True:
@@ -49,8 +58,13 @@ def upload_data(sock):
       break
 
     packet = ''
-    packet += str(seq_no) + ':'
     packet += hashlib.md5(datachunk).hexdigest() + ':'
-    packet += datachunk
+    packet += str(datachunk)
     
-    sock.sendto(packet, server_address)
+    while True:
+      sock.sendto(packet, server_address)
+      try:
+        ack, addr = sock.recvfrom(CHUNK_SIZE)
+        break
+      except:
+        continue
