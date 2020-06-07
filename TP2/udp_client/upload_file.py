@@ -1,5 +1,6 @@
 import socket
 import os
+import hashlib
 
 CHUNK_SIZE = 1024
 
@@ -30,11 +31,7 @@ def upload_file(server_address, src, name):
     print("There was an error on the server")
     return exit(1)
 
-  while True:
-    chunk = f.read(CHUNK_SIZE)
-    if not chunk:
-      break
-    sock.sendto(chunk, server_address)
+  upload_data(sock)
 
   # Recv amount of data received by the server
   num_bytes, addr = sock.recvfrom(CHUNK_SIZE)
@@ -42,3 +39,18 @@ def upload_file(server_address, src, name):
 
   f.close()
   sock.close()
+
+def upload_data(sock):
+  packet = ''
+  seq_no = 0
+  while True:
+    datachunk = f.read(CHUNK_SIZE)
+    if not datachunk:
+      break
+
+    packet = ''
+    packet += str(seq_no) + ':'
+    packet += hashlib.md5(datachunk).hexdigest() + ':'
+    packet += datachunk
+    
+    sock.sendto(packet, server_address)

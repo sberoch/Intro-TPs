@@ -17,7 +17,7 @@ def download_file(server_address, name, dst):
 
   if (filesize < 0):
   	print("File not found on the server")
-    return exit(1)
+  	return exit(1)
 
   print('UDP: receiving {} bytes'.format(filesize.decode()))
   sock.sendto(b'start', server_address)
