@@ -18,14 +18,14 @@ def download_file(server_address, name, dst):
   print('UDP: receiving {} bytes'.format(filesize.decode()))
   sock.sendto(b'start', server_address)
 
-  file = open(dst, "w")
+  file = open(dst, "wb")
   received = 0
-  while received < filesize:
+  while received < int(filesize.decode()):
   	data, addr = sock.recvfrom(CHUNK_SIZE)
   	received += len(data)
   	file.write(data)
 
-  print('UDP: received {} bytes'.format(received.decode()))
+  print('UDP: received {} bytes'.format(received))
 
   file.close()
   sock.close()

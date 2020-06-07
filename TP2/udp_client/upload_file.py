@@ -36,7 +36,5 @@ def upload_file(server_address, src, name):
   # Recv amount of data received by the server
   num_bytes, addr = sock.recvfrom(CHUNK_SIZE)
 
-  print("Server received {} bytes".format(num_bytes.decode()))
-
   f.close()
   sock.close()
