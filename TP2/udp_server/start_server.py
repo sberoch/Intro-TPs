@@ -1,5 +1,6 @@
 import socket
 import os
+import hashlib
 
 CHUNK_SIZE = 1024
 
@@ -39,11 +40,19 @@ def start_server(server_address, storage_dir):
       sock.sendto(b'start', addr)
 
       while bytes_received < size:
-        data, addr = sock.recvfrom(CHUNK_SIZE)
-        bytes_received += len(data)
-        f.write(data)
+        data_encoded, addr = sock.recvfrom(CHUNK_SIZE)
+        data = data_encoded.decode()
+        checksum,data_chunk = data.split(":",1)
+        print(data_chunk)
+        data_chunk = data_chunk.encode()
+        #print(checksum)
+        #print(hashlib.md5(data_chunk).hexdigest())
+        if (checksum == hashlib.md5(data_chunk).hexdigest()):
+          sock.sendto(b'ack', addr)
+          bytes_received += len(data_chunk)
+          f.write(data_chunk)
 
-        print("Received file {}".format(filename))
+      print("Received file {}".format(filename))
 
       # Send number of bytes received
       sock.sendto(str(bytes_received).encode(),addr)

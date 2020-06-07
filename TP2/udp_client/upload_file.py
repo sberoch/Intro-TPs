@@ -53,18 +53,22 @@ def upload_data(sock, f, server_address):
   packet = ''
   seq_no = 0
   while True:
-    datachunk = f.read(CHUNK_SIZE)
+    datachunk = f.read(CHUNK_SIZE-33)
     if not datachunk:
       break
+    datachunk = datachunk.decode().encode()
 
     packet = ''
     packet += hashlib.md5(datachunk).hexdigest() + ':'
-    packet += str(datachunk)
+    packet += datachunk.decode()
+
+    a,b = packet.split(":",1)
+    print(b)
     
     while True:
-      sock.sendto(packet, server_address)
+      sock.sendto(packet.encode(), server_address)
       try:
         ack, addr = sock.recvfrom(CHUNK_SIZE)
         break
-      except:
+      except socket.timeout:
         continue
