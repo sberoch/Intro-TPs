@@ -6,6 +6,11 @@ def download_file(server_address, name, dst):
   # TODO: Implementar TCP download_file client
 
   print(f'TCP: download_file({server_address}, {name}, {dst})')
+  index = dst.rfind('/')
+  folder = dst[:index]
+  if not os.path.exists(folder):
+    print("Creating dst")
+    os.makedirs(folder, exist_ok=True)
 
   # Create socket and connect to server
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
