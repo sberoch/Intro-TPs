@@ -5,6 +5,12 @@ CHUNK_SIZE = 1024
 
 def start_server(server_address, storage_dir):
   # TODO: Implementar UDP server
+
+  # Si no existe el storage_dir se crea
+  if not os.path.exists(storage_dir):
+    print("Creando storage_dir")
+    os.makedirs(storage_dir, exist_ok=True)
+
   print('UDP: start_server({}, {})'.format(server_address, storage_dir))
   
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -21,10 +27,13 @@ def start_server(server_address, storage_dir):
     if accion == 'upload':
       size = int(data.decode())
       print("Incoming file with size {} from {}".format(size, addr))
+      sock.sendto(b'ok', addr)
 
       #TODO: path absoluto, sacar esto hardcodeado. (El filename se recibe por cliente)
-      filename = "asdasd.txt"
-      f = open(filename, "wb")
+
+      data, addr = sock.recvfrom(CHUNK_SIZE)
+      filename = data.decode()
+      f = open(os.path.join(storage_dir,filename), "wb")
       bytes_received = 0
 
       sock.sendto(b'start', addr)
@@ -45,7 +54,13 @@ def start_server(server_address, storage_dir):
       name = data.decode()
       print("Sending file called {} to {}".format(name, addr))
 
-      f = open(name, "rb")
+      path = os.path.join(storage_dir, name)
+      if not os.path.exists(path):
+        print("File not found")
+        sock.sendto("-1".encode(), addr)
+        continue
+
+      f = open(path, "rb")
       f.seek(0, os.SEEK_END)
       size = f.tell()
       f.seek(0, os.SEEK_SET)

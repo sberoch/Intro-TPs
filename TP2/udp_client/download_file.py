@@ -1,10 +1,20 @@
 import socket
 import sys
+import os
 
 CHUNK_SIZE = 1024
 
 def download_file(server_address, name, dst):
   # TODO: Implementar UDP download_file client
+
+  # Si no existe el storage_dir se crea
+  index = dst.rfind('/')
+  folder = dst[:index]
+  if not os.path.exists(folder):
+    print("Creating dst")
+    os.makedirs(folder, exist_ok=True)
+
+
   print('UDP: download_file({}, {}, {})'.format(server_address, name, dst))
 
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -15,9 +25,9 @@ def download_file(server_address, name, dst):
   sock.sendto(name.encode(), server_address)
   filesize, addr = sock.recvfrom(CHUNK_SIZE)
 
-  if (filesize < 0):
+  if (int(filesize.decode()) < 0):
   	print("File not found on the server")
-    return exit(1)
+  	return exit(1)
 
   print('UDP: receiving {} bytes'.format(filesize.decode()))
   sock.sendto(b'start', server_address)
