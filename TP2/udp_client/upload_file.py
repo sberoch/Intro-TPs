@@ -23,6 +23,9 @@ def upload_file(server_address, src, name):
   sock.sendto(str(size).encode(), server_address)
   signal, addr = sock.recvfrom(CHUNK_SIZE)
 
+  sock.sendto(name.encode(), server_address)
+  signal, addr = sock.recvfrom(CHUNK_SIZE)
+
   if signal.decode() != "start":
     print("There was an error on the server")
     return exit(1)
