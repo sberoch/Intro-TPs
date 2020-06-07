@@ -26,6 +26,8 @@ def download_file(server_address, name, dst):
   	file.write(data)
 
   print('UDP: received {} bytes'.format(received))
+  # Send number of bytes received
+  sock.sendto(str(received).encode(), server_address)
 
   file.close()
   sock.close()

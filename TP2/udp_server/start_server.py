@@ -43,7 +43,7 @@ def start_server(server_address, storage_dir):
 
     elif accion == 'download':
       name = data.decode()
-      print("Sending file called {} to {}".format(name,addr))
+      print("Sending file called {} to {}".format(name, addr))
 
       f = open(name, "rb")
       f.seek(0, os.SEEK_END)
@@ -64,12 +64,9 @@ def start_server(server_address, storage_dir):
           break
         sock.sendto(chunk, addr)
 
-      print('UDP: sent {} bytes'.format(size))
-
+      num_bytes, addr = sock.recvfrom(CHUNK_SIZE)
+      print('UDP: sent {} bytes'.format(num_bytes.decode()))
 
       f.close()
 
-  
-
   sock.close()
-
