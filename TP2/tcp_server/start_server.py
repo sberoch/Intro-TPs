@@ -3,13 +3,18 @@ import socket, os
 CHUNK_SIZE = 1024
 
 def start_server(server_address, storage_dir):
-  # TODO: Implementar TCP server
+
   print('TCP: start_server({}, {})'.format(server_address, storage_dir))
+
+  if not os.path.exists(storage_dir):
+      print(f"Creating storage_dir at {storage_dir}")
+      os.makedirs(storage_dir, exist_ok=True)
 
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   sock.bind(server_address)
   sock.listen(50)
 
+  print(f"Listening for connections...")
   while True:
     conn, addr = sock.accept()
     if not conn:
@@ -24,13 +29,14 @@ def start_server(server_address, storage_dir):
     filename = conn.recv(CHUNK_SIZE).decode()
 
     print(f"Received action {action} from addr {addr}. Filename {filename}")
+    
+    full_path = os.path.join(storage_dir, filename)
+
     if action == 'download':
-      serve_download(conn, filename)
+      serve_download(conn, full_path)
 
     if action == 'upload':
-      serve_upload(conn, filename)
-
-    #TODO: path absoluto, sacar esto hardcodeado. (El filename se recibe por cliente)
+      serve_upload(conn, full_path)
 
     conn.close()
 
@@ -38,14 +44,20 @@ def start_server(server_address, storage_dir):
 
 
 
-def serve_download(conn, filename):
-  f = open(filename, "rb")
+def serve_download(conn, full_path):
+
+  try:
+    f = open(full_path, "rb")
+  except FileNotFoundError:
+    print(f"Requested download for non-existant file {full_path}, aborting connection")
+    conn.send(str(-1).encode())
+    return
 
   f.seek(0, os.SEEK_END)
   size = f.tell()
   f.seek(0, os.SEEK_SET)
 
-  print(f"Found {filename} with size {size}")
+  print(f"Found {full_path} with size {size}")
   conn.send(str(size).encode())
 
   signal = conn.recv(CHUNK_SIZE)
@@ -59,11 +71,14 @@ def serve_download(conn, filename):
 
 
   print(f"Finished sending {size} bytes")
+  f.close()
 
 
-def serve_upload(conn, filename):
+def serve_upload(conn, full_path):
+
+  conn.send(b'init')
   
-  f = open(filename, "wb")
+  f = open(full_path, "wb")
   bytes_received = 0
 
   size = int(conn.recv(CHUNK_SIZE).decode())
@@ -74,6 +89,6 @@ def serve_upload(conn, filename):
     bytes_received += len(data)
     f.write(data)
 
-  print("Received file {}".format(filename))
+  print("Received file {}".format(full_path))
 
   f.close()

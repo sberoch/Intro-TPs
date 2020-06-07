@@ -14,10 +14,16 @@ def download_file(server_address, name, dst):
   sock.send(b'download')
 
   confirmation = sock.recv(CHUNK_SIZE)
+  assert confirmation == b'ok'
 
   sock.send(name.encode())
 
   filesize = sock.recv(CHUNK_SIZE).decode()
+
+  if int(filesize) < 0:
+    print(f"File not found on server, exiting")
+    sock.close()
+    return exit(1)
 
   print(f"TCP: Receiving {filesize} bytes")
 
@@ -35,5 +41,5 @@ def download_file(server_address, name, dst):
   assert bytes_recvd == int(filesize)
 
 
-
+  f.close()
   sock.close()
