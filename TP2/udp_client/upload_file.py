@@ -1,74 +1,96 @@
 import socket
 import os
-import hashlib
 
 CHUNK_SIZE = 1024
+DELIMITER = ':'
+MAX_TIMEOUTS = 10
+MAX_PACKETS_PER_WINDOW = 10
 
 def upload_file(server_address, src, name):
-  # TODO: Implementar UDP upload_file client
-
   if not os.path.exists(src):
-    print("File not found")
+    print('File not found')
     return exit(1)
 
   print('UDP: upload_file({}, {}, {})'.format(server_address, src, name))
+  packets = load_file(src)
 
-  f = open(src, "rb")
-  f.seek(0, os.SEEK_END)
-  size = f.tell()
-  f.seek(0, os.SEEK_SET)
+  cli_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  cli_socket.settimeout(1)
 
-  print("Sending {} bytes from {}".format(size, src))
-
-  # Create socket and connect to server
-  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  sock.settimeout(0.2)
-
-  sock.sendto(b'upload', server_address)
-  signal, addr = sock.recvfrom(CHUNK_SIZE)
-
-  sock.sendto(str(size).encode(), server_address)
-  signal, addr = sock.recvfrom(CHUNK_SIZE)
-
-  sock.sendto(name.encode(), server_address)
-  signal, addr = sock.recvfrom(CHUNK_SIZE)
-
-  if signal.decode() != "start":
-    print("There was an error on the server")
+  request_acked = send_upload_request('upload:{}:{}'.format(name, str(len(packets))), cli_socket, server_address)
+  if not request_acked:
+    print('Could not send request to server. Program exiting')
     return exit(1)
 
-  upload_data(sock, f, server_address)
+  send_file(packets, cli_socket, server_address)
+  cli_socket.close()
 
-  # Recv amount of data received by the server
-  num_bytes, addr = sock.recvfrom(CHUNK_SIZE)
-  print("Received {} bytes".format(num_bytes.decode()))
+
+def load_file(src):
+  f = open(src, "rb")
+  packets = {}
+  packet_seq_no = 0
+  while True:
+    header = str(packet_seq_no) + DELIMITER
+    chunk = f.read(CHUNK_SIZE - len(header))
+    if not chunk:
+      break
+
+    packets[str(packet_seq_no)] = header + str(chunk)
+    packet_seq_no += 1
 
   f.close()
-  sock.close()
+  return packets
 
-def upload_data(sock, f, server_address):
 
-  #checksum:data
+def send_upload_request(request, cli_socket, server_address):
+  #Example request: "upload:filename.txt:17"
+  for i in range(MAX_TIMEOUTS):
+    cli_socket.sendto(request.encode(), server_address)
+    try:
+      ack = cli_socket.recvfrom(CHUNK_SIZE)
+      return True
+    except socket.timeout:
+      print('Timeout number {} sending upload request'.format(str(i)))
+  return False
 
-  packet = ''
-  seq_no = 0
-  while True:
-    datachunk = f.read(CHUNK_SIZE-33)
-    if not datachunk:
-      break
-    datachunk = datachunk.decode().encode()
 
-    packet = ''
-    packet += hashlib.md5(datachunk).hexdigest() + ':'
-    packet += datachunk.decode()
+def send_file(packets, cli_socket, server_address):
+  sent_packets = 0
+  total_packets = len(packets)
+  timeouts = 0
 
-    a,b = packet.split(":",1)
-    print(b)
-    
-    while True:
-      sock.sendto(packet.encode(), server_address)
+  while (sent_packets < total_packets) and (timeouts < MAX_TIMEOUTS):
+    packets_seq_numbers = list(packets.keys())
+    remaining_packets = total_packets - sent_packets
+    packets_to_send = remaining_packets if remaining_packets < MAX_PACKETS_PER_WINDOW else MAX_PACKETS_PER_WINDOW
+
+    for i in range(packets_to_send):
+      cli_socket.sendto(packets[packets_seq_numbers[i]].encode(), server_address)
+
+    for j in range(packets_to_send):
       try:
-        ack, addr = sock.recvfrom(CHUNK_SIZE)
-        break
+        response, addr = cli_socket.recvfrom(CHUNK_SIZE)
+        ack = response.decode()
+        timeouts = 0
+        if ack in packets_seq_numbers:
+          sent_packets += 1
+          packets.pop(ack)
+
       except socket.timeout:
+        timeouts += 1
+        print('Timeout {} sending file'.format(str(timeouts)))
         continue
+
+  if timeouts >= MAX_TIMEOUTS:
+    print('Could not send request to server. Program exiting')
+    return exit(1)
+
+
+
+
+
+
+
+
+
