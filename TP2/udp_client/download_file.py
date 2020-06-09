@@ -16,9 +16,9 @@ def download_file(server_address, name, dst):
 
   print('UDP: download_file({}, {}, {})'.format(server_address, name, dst))
   cli_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  cli_socket.settimeout(1)
+  cli_socket.settimeout(0.1)
 
-  request_acked, response = send_upload_request('download:{}'.format(name), cli_socket, server_address)
+  request_acked, response = send_message('download:{}'.format(name), cli_socket, server_address)
   if not request_acked:
     print('Could not send request to server. Program exiting')
     return exit(1)
@@ -28,13 +28,12 @@ def download_file(server_address, name, dst):
     return exit(1)
 
   total_packets = int(response)
-  send_upload_request('ok', cli_socket, server_address)
+  send_message('ok', cli_socket, server_address)
   recv_file(cli_socket, server_address, dst, int(total_packets))
   cli_socket.close()
 
 
-def send_upload_request(request, cli_socket, server_address):
-  #Example request: "download:filename.txt"
+def send_message(request, cli_socket, server_address):
   for i in range(MAX_TIMEOUTS):
     cli_socket.sendto(request.encode(), server_address)
     try:
@@ -53,9 +52,11 @@ def recv_file(cli_socket, server_address, filename, total_packets):
   while (recvd_packets < total_packets) and (timeouts < MAX_TIMEOUTS):
     try:
       packet, addr = cli_socket.recvfrom(CHUNK_SIZE)
-      packet_seq_no, chunk = packet.decode().split(DELIMITER, 1)
-      if packet_seq_no == "upload":
-        return 1
+      try:
+        packet_seq_no, chunk = packet.decode().split(DELIMITER, 1)
+      except ValueError as e:
+        print('Received duplicate info packets')
+        continue
 
       timeouts = 0
       cli_socket.sendto(packet_seq_no.encode(), server_address)
@@ -72,6 +73,7 @@ def recv_file(cli_socket, server_address, filename, total_packets):
       print('Could not receive file.')
       return 1
 
+  cli_socket.sendto(b'done', server_address)
   write_file(packets, filename)
 
 

@@ -16,15 +16,15 @@ def start_server(server_address, storage_dir):
   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   sock.bind(server_address)
 
-  #try:
-  run_server(sock, storage_dir)
+  try:
+    run_server(sock, storage_dir)
 
-  #except Exception as e:
-  #  print(e)
-  #  return exit(1)
+  except Exception as e:
+    print(e)
+    return exit(1)
 
-  #finally:
-  #  sock.close()
+  finally:
+    sock.close()
 
 
 def run_server(svr_socket, storage_dir):
@@ -32,7 +32,10 @@ def run_server(svr_socket, storage_dir):
     svr_socket.settimeout(None)
     request, addr = svr_socket.recvfrom(CHUNK_SIZE)
     request = request.decode()
-    command, info = request.split(DELIMITER, 1)
+    try:
+      command, info = request.split(DELIMITER, 1)
+    except ValueError:
+      continue
 
     if command == 'upload':
       filename, total_packets = info.split(DELIMITER, 1)
@@ -42,7 +45,7 @@ def run_server(svr_socket, storage_dir):
       recv_file(svr_socket, addr, storage_dir+'/'+filename, int(total_packets))
 
     elif command == 'download':
-      svr_socket.settimeout(1)
+      svr_socket.settimeout(0.1)
       filename = storage_dir+'/'+info
       if os.path.exists(filename):
         send_file_info(filename, svr_socket, addr)
@@ -56,7 +59,7 @@ def recv_file(svr_socket, addr, filename, total_packets):
   packets = {}
   recvd_packets = 0
   timeouts = 0
-  svr_socket.settimeout(1)
+  svr_socket.settimeout(0.1)
 
   while (recvd_packets < total_packets) and (timeouts < MAX_TIMEOUTS):
     try:
@@ -80,6 +83,7 @@ def recv_file(svr_socket, addr, filename, total_packets):
       print('Could not receive file.')
       return 1
 
+  svr_socket.sendto(b'done', addr)
   write_file(packets, filename)
 
 
@@ -101,7 +105,7 @@ def load_file(src):
     if not chunk:
       break
 
-    packets[str(packet_seq_no)] = header + str(chunk)
+    packets[str(packet_seq_no)] = header + chunk.decode()
     packet_seq_no += 1
 
   f.close()
@@ -137,6 +141,9 @@ def send_file(packets, svr_socket, cli_addr):
       try:
         response, addr = svr_socket.recvfrom(CHUNK_SIZE)
         ack = response.decode()
+        if ack == 'done':
+          print('Success sending file to client')
+          return 0
         timeouts = 0
         if ack in packets_seq_numbers:
           sent_packets += 1

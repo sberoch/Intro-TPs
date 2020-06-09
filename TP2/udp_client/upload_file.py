@@ -15,7 +15,7 @@ def upload_file(server_address, src, name):
   packets = load_file(src)
 
   cli_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  cli_socket.settimeout(1)
+  cli_socket.settimeout(0.1)
 
   request_acked = send_upload_request('upload:{}:{}'.format(name, str(len(packets))), cli_socket, server_address)
   if not request_acked:
@@ -36,7 +36,7 @@ def load_file(src):
     if not chunk:
       break
 
-    packets[str(packet_seq_no)] = header + str(chunk)
+    packets[str(packet_seq_no)] = header + chunk.decode()
     packet_seq_no += 1
 
   f.close()
@@ -72,6 +72,9 @@ def send_file(packets, cli_socket, server_address):
       try:
         response, addr = cli_socket.recvfrom(CHUNK_SIZE)
         ack = response.decode()
+        if ack == 'done':
+          print('Success sending file to client')
+          return 0
         timeouts = 0
         if ack in packets_seq_numbers:
           sent_packets += 1
