@@ -20,8 +20,12 @@ def upload_file(server_address, src, name):
   print("Sending {} bytes from {}".format(size, src))
 
   # Create socket and connect to server
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  sock.connect(server_address)
+  try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(server_address)
+  except ConnectionError:
+    print("Unable to contact remote server, aborting")
+    return exit(1)
 
   message = 'upload' + DELIMITER + name + DELIMITER + str(size)
   sock.send(message.encode())
