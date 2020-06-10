@@ -2,6 +2,7 @@ import socket, os
 
 CHUNK_SIZE = 1024
 DELIMITER = ':'
+MAX_TIMEOUT = 5
 
 def start_server(server_address, storage_dir):
 
@@ -22,39 +23,42 @@ def start_server(server_address, storage_dir):
   
   try:
     while True:
-      print(f"Listening for connections... (press Ctrl+C to exit)")
+      print(f"Listening for connections... (press Ctrl+C to exit now)")
       serve_connection(sock, storage_dir)
 
   except KeyboardInterrupt:
     print("\nExiting!")
 
-  except ConnectionError:
-    print("\nFatal error while establishing connection, aborting")
-    sock.close()
-    return exit(1)
 
   sock.close()
 
 
 def serve_connection(sock, storage_dir):
-  conn, addr = sock.accept()
-  if not conn:
-    raise ConnectionError
+  try:
+    conn, addr = sock.accept()
+    print("=== New connection started")
+    if not conn:
+      raise ConnectionError
+    conn.settimeout(MAX_TIMEOUT)
 
-  print("Accepted connection from {}".format(addr))
+    print("Accepted connection from {}".format(addr))
 
-  message = conn.recv(CHUNK_SIZE).decode()
+    message = conn.recv(CHUNK_SIZE).decode()
 
-  command, info = message.split(DELIMITER, 1)
-  print(f"Received action {command} from addr {addr}. File information: {info}")
-  
-  if command == 'download':
-    serve_download(conn, storage_dir, info)
+    command, info = message.split(DELIMITER, 1)
+    print(f"Received action {command} from addr {addr}. File information: {info}")
+    
+    if command == 'download':
+      serve_download(conn, storage_dir, info)
 
-  if command == 'upload':
-    serve_upload(conn, storage_dir, info)
+    if command == 'upload':
+      serve_upload(conn, storage_dir, info)
 
-  conn.close()
+    conn.close()
+  except (ConnectionError, socket.timeout) as e:
+    print(f"\nError while communicating with client, closing connection. Error: {e}")
+    return
+
 
 def serve_download(conn, storage_dir, path):
 
@@ -82,12 +86,17 @@ def serve_download(conn, storage_dir, path):
     print("Error on client, cancelling transfer")
     return
 
-  while True:
-    chunk = f.read(CHUNK_SIZE)
-    if not chunk:
-      break
-    conn.send(chunk)
-
+  print(f"Transfering... (press Ctrl+C to cancel)")
+  try:
+    while True:
+      chunk = f.read(CHUNK_SIZE)
+      if not chunk:
+        break
+      conn.send(chunk)
+  except KeyboardInterrupt:
+    print("\nCancelled transfer, closing connection...")
+    f.close()
+    return
 
   print(f"Finished sending {size} bytes")
   f.close()
@@ -110,10 +119,17 @@ def serve_upload(conn, storage_dir, fileinfo):
   bytes_received = 0
   conn.send(b'start')
 
-  while bytes_received < size:
-    data = conn.recv(CHUNK_SIZE)
-    bytes_received += len(data)
-    f.write(data)
+  print(f"Receiving... (press Ctrl+C to cancel)")
+  try:
+    while bytes_received < size:
+      data = conn.recv(CHUNK_SIZE)
+      bytes_received += len(data)
+      f.write(data)
+  except KeyboardInterrupt:
+    print("\nCancelled transfer, closing connection...")
+    f.close()
+    return
+
 
   print("Received file {}".format(full_path))
 
