@@ -1,27 +1,28 @@
 import socket, os
 
+DELIMITER = ':'
 CHUNK_SIZE = 1024
 
 def download_file(server_address, name, dst):
-  # TODO: Implementar TCP download_file client
 
   print(f'TCP: download_file({server_address}, {name}, {dst})')
   index = dst.rfind('/')
   folder = dst[:index]
   if not os.path.exists(folder):
-    print("Creating dst")
+    print("Creating dst folder")
     os.makedirs(folder, exist_ok=True)
 
   # Create socket and connect to server
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  sock.connect(server_address)
+  try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect(server_address)
+  except ConnectionError:
+    print("Unable to contact remote server, aborting")
+    return exit(1)
 
-  sock.send(b'download')
+  message = 'download' + DELIMITER + name
 
-  confirmation = sock.recv(CHUNK_SIZE)
-  assert confirmation == b'ok'
-
-  sock.send(name.encode())
+  sock.send(message.encode())
 
   filesize = sock.recv(CHUNK_SIZE).decode()
 
@@ -32,10 +33,17 @@ def download_file(server_address, name, dst):
 
   print(f"TCP: Receiving {filesize} bytes")
 
-  sock.send(b'start')
+  try:
+    f = open(dst, "wb")
+  except OSError:
+    print(f"Error while creating local-file {dst}, exiting...")
+    sock.send(b'error')
+    sock.close()
+    return exit(1)
 
-  f = open(dst, "wb")
   bytes_recvd = 0
+
+  sock.send(b'start')
 
   while bytes_recvd < int(filesize):
     data = sock.recv(CHUNK_SIZE)

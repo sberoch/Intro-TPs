@@ -1,6 +1,7 @@
 import socket, os
 
 CHUNK_SIZE = 1024
+DELIMITER = ':'
 
 def start_server(server_address, storage_dir):
 
@@ -10,41 +11,55 @@ def start_server(server_address, storage_dir):
       print(f"Creating storage_dir at {storage_dir}")
       os.makedirs(storage_dir, exist_ok=True)
 
-  sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  sock.bind(server_address)
-  sock.listen(50)
+  try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(server_address)
+    sock.listen(50)
+  except OSError:
+    print(f"Error while creating socket, aborting")
+    return exit(1)
 
-  print(f"Listening for connections...")
-  while True:
-    conn, addr = sock.accept()
-    if not conn:
-      break
+  
+  try:
+    while True:
+      print(f"Listening for connections... (press Ctrl+C to exit)")
+      serve_connection(sock, storage_dir)
 
-    print("Accepted connection from {}".format(addr))
-    action = conn.recv(CHUNK_SIZE).decode()
+  except KeyboardInterrupt:
+    print("\nExiting!")
 
-    conn.send(b'ok')
-
-    print(f"Received action {action}")
-    filename = conn.recv(CHUNK_SIZE).decode()
-
-    print(f"Received action {action} from addr {addr}. Filename {filename}")
-    
-    full_path = os.path.join(storage_dir, filename)
-
-    if action == 'download':
-      serve_download(conn, full_path)
-
-    if action == 'upload':
-      serve_upload(conn, full_path)
-
-    conn.close()
+  except ConnectionError:
+    print("\nFatal error while establishing connection, aborting")
+    sock.close()
+    return exit(1)
 
   sock.close()
 
 
+def serve_connection(sock, storage_dir):
+  conn, addr = sock.accept()
+  if not conn:
+    raise ConnectionError
 
-def serve_download(conn, full_path):
+  print("Accepted connection from {}".format(addr))
+
+  message = conn.recv(CHUNK_SIZE).decode()
+
+  command, info = message.split(DELIMITER, 1)
+  print(f"Received action {command} from addr {addr}. File information: {info}")
+  
+  if command == 'download':
+    serve_download(conn, storage_dir, info)
+
+  if command == 'upload':
+    serve_upload(conn, storage_dir, info)
+
+  conn.close()
+
+def serve_download(conn, storage_dir, path):
+
+  full_path = os.path.join(storage_dir, path)
+
 
   try:
     f = open(full_path, "rb")
@@ -61,7 +76,11 @@ def serve_download(conn, full_path):
   conn.send(str(size).encode())
 
   signal = conn.recv(CHUNK_SIZE)
-  assert signal == b'start'
+  
+  if signal != b'start':
+    f.close()
+    print("Error on client, cancelling transfer")
+    return
 
   while True:
     chunk = f.read(CHUNK_SIZE)
@@ -74,14 +93,21 @@ def serve_download(conn, full_path):
   f.close()
 
 
-def serve_upload(conn, full_path):
+def serve_upload(conn, storage_dir, fileinfo):
 
-  conn.send(b'init')
+  filename, size = fileinfo.rsplit(DELIMITER, 1)
+  size = int(size)
   
-  f = open(full_path, "wb")
-  bytes_received = 0
+  full_path = os.path.join(storage_dir, filename)
+  
+  try:
+    f = open(full_path, "wb")
+  except OSError:
+    conn.send(b'error')
+    print(f"Error while creating local-file {full_path}, exiting...")
+    return
 
-  size = int(conn.recv(CHUNK_SIZE).decode())
+  bytes_received = 0
   conn.send(b'start')
 
   while bytes_received < size:
