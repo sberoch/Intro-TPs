@@ -36,7 +36,7 @@ def load_file(src):
     if not chunk:
       break
 
-    packets[str(packet_seq_no)] = header + chunk.decode()
+    packets[str(packet_seq_no)] = header + chunk.decode('latin_1')
     packet_seq_no += 1
 
   f.close()
@@ -66,7 +66,7 @@ def send_file(packets, cli_socket, server_address):
     packets_to_send = remaining_packets if remaining_packets < MAX_PACKETS_PER_WINDOW else MAX_PACKETS_PER_WINDOW
 
     for i in range(packets_to_send):
-      cli_socket.sendto(packets[packets_seq_numbers[i]].encode(), server_address)
+      cli_socket.sendto(packets[packets_seq_numbers[i]].encode('latin_1'), server_address)
 
     for j in range(packets_to_send):
       try:

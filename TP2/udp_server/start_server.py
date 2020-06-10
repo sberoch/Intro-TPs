@@ -64,7 +64,7 @@ def recv_file(svr_socket, addr, filename, total_packets):
   while (recvd_packets < total_packets) and (timeouts < MAX_TIMEOUTS):
     try:
       packet, addr = svr_socket.recvfrom(CHUNK_SIZE)
-      packet_seq_no, chunk = packet.decode().split(DELIMITER, 1)
+      packet_seq_no, chunk = packet.decode('latin_1').split(DELIMITER, 1)
       if packet_seq_no == "upload":
         return 1
 
@@ -90,7 +90,7 @@ def recv_file(svr_socket, addr, filename, total_packets):
 def write_file(packets, filename):
   file = open(filename, "wb")
   for i in range(0, len(packets)):
-    file.write(packets[str(i)].encode())
+    file.write(packets[str(i)].encode('latin_1'))
   file.close()
   print('Success uploading file')
 
@@ -105,7 +105,7 @@ def load_file(src):
     if not chunk:
       break
 
-    packets[str(packet_seq_no)] = header + chunk.decode()
+    packets[str(packet_seq_no)] = header + chunk.decode('latin_1')
     packet_seq_no += 1
 
   f.close()
@@ -135,7 +135,7 @@ def send_file(packets, svr_socket, cli_addr):
     packets_to_send = remaining_packets if remaining_packets < MAX_PACKETS_PER_WINDOW else MAX_PACKETS_PER_WINDOW
 
     for i in range(packets_to_send):
-      svr_socket.sendto(packets[packets_seq_numbers[i]].encode(), cli_addr)
+      svr_socket.sendto(packets[packets_seq_numbers[i]].encode('latin_1'), cli_addr)
 
     for j in range(packets_to_send):
       try:

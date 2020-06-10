@@ -38,7 +38,7 @@ def send_message(request, cli_socket, server_address):
     cli_socket.sendto(request.encode(), server_address)
     try:
       response, addr = cli_socket.recvfrom(CHUNK_SIZE)
-      return True, response.decode()
+      return True, response.decode('latin_1')
     except socket.timeout:
       print('Timeout number {} - Request: {}'.format(str(i), request))
   return False, ''
@@ -53,7 +53,7 @@ def recv_file(cli_socket, server_address, filename, total_packets):
     try:
       packet, addr = cli_socket.recvfrom(CHUNK_SIZE)
       try:
-        packet_seq_no, chunk = packet.decode().split(DELIMITER, 1)
+        packet_seq_no, chunk = packet.decode('latin_1').split(DELIMITER, 1)
       except ValueError as e:
         print('Received duplicate info packets')
         continue
@@ -80,6 +80,6 @@ def recv_file(cli_socket, server_address, filename, total_packets):
 def write_file(packets, filename):
   file = open(filename, "wb")
   for i in range(0, len(packets)):
-    file.write(packets[str(i)].encode())
+    file.write(packets[str(i)].encode('latin_1'))
   file.close()
   print('Success downloading file')
