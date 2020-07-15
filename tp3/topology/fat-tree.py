@@ -19,24 +19,26 @@ class FatTree( Topo ):
 
 
   def create_root(self):
-    sw00 = self.addSwitch('sw00')
+    root = self.addSwitch('s1')
 
     h1 = self.addHost('h1')
     h2 = self.addHost('h2')
     h3 = self.addHost('h3')
 
-    self.addLink(sw00, h1)
-    self.addLink(sw00, h2)
-    self.addLink(sw00, h3)
+    self.addLink(root, h1)
+    self.addLink(root, h2)
+    self.addLink(root, h3)
 
-    return sw00
+    return root
 
 
   def create_switches(self, switches, levels):
+    sw_number = 2
     for i in range(1, levels):
       switches_nivel = []
       for j in range(2**i):
-        switches_nivel.append(self.addSwitch('sw'+str(i)+str(j)))
+        switches_nivel.append(self.addSwitch('s'+str(sw_number)))
+        sw_number = sw_number + 1
       switches.append(switches_nivel)
 
     for i in range(len(switches)-1):
