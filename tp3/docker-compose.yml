@@ -3,7 +3,7 @@ services:
   mininet:
     build:
       context: .
-    image: iwaseyusuke/mininet
+      dockerfile: Dockerfile
     tty: true
     network_mode: "bridge"
     privileged: true
@@ -16,3 +16,5 @@ services:
      - ./pox:/tmp/pox
      - ./tcpdump:/tmp/tcpdump
      - ./controller:/tmp/pox/ext
+    
+
