@@ -11,10 +11,7 @@ import pox.openflow.libopenflow_01 as of
 
 class Tp3Controller:
 	def __init__(self):
-		self.connections = set()
-		self.switches = []
 		self.graph = nx.Graph()
-		self.hosts = set()
 		self.output_ports = {}
 		core.call_when_ready(self.start, ('openflow', 'openflow_discovery'))
 
@@ -24,8 +21,7 @@ class Tp3Controller:
 		print('Started!')
 
 	def _handle_ConnectionUp(self, event):
-		if (event.connection not in self.connections):
-			self.connections.add(event.connection)
+		print('---Switch up!')
 
 	def _handle_ConnectionDown(self, event):
 		print('---Switch down!')
@@ -39,8 +35,7 @@ class Tp3Controller:
 		source = str(event.parsed.src)
 		dest = str(event.parsed.dst)
 
-		if source not in self.hosts:
-			self.hosts.add(source)
+		if source not in self.graph:
 			self.graph.add_edge(source, event.connection.dpid)
 			self.output_ports[(event.connection.dpid, source)] = event.port
 
