@@ -14,6 +14,8 @@ class Tp3Controller:
 		self.graph = nx.Graph()
 		self.output_ports = {}
 		self.flows_to_paths = {}
+		self.round_robin_counter = 0
+		self.packets_per_sw = [0]*100
 		core.call_when_ready(self.start, ('openflow', 'openflow_discovery'))
 
 	def start(self):
@@ -26,6 +28,17 @@ class Tp3Controller:
 
 	def _handle_ConnectionDown(self, event):
 		print('---Switch down!')
+		#Sacarlo del grafo
+		self.graph.remove_node(event.connection.dpid)
+
+		#TODO: sacarlo de los output_ports
+		#TODO: recorrer todos los switches y sacar la entrada de los que tienen
+		#		conexion con el borrado.
+
+		# create ofp_flow_mod message to delete all flows
+		msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
+		for connection in core.openflow.connections: 
+			connection.send(msg)
 
 	def _handle_LinkEvent(self, event):
 		self.graph.add_edge(event.link.dpid1, event.link.dpid2)
@@ -55,10 +68,19 @@ class Tp3Controller:
 			next_hop = path[sw_index+1]
 
 		else:
-			path = nx.all_shortest_paths(self.graph, source=event.connection.dpid, target=dest).next()
+			paths = [p for p in nx.all_shortest_paths(self.graph, source=event.connection.dpid, target=dest)]
+			print("Paths: ", paths)
+
+			index = self.round_robin_counter % len(paths)
+			path = paths[index]
+			self.round_robin_counter += 1
+
 			print("Calculated shortest path:", path)
 			next_hop = path[1]
 			self.flows_to_paths[flow] = path
+
+		self.packets_per_sw[event.connection.dpid] += 1
+		print(self.packets_per_sw)
 
 		msg = of.ofp_flow_mod()
 		msg.data = event.ofp
