@@ -13,6 +13,7 @@ class Tp3Controller:
 	def __init__(self):
 		self.graph = nx.Graph()
 		self.output_ports = {}
+		self.flows_to_paths = {}
 		core.call_when_ready(self.start, ('openflow', 'openflow_discovery'))
 
 	def start(self):
@@ -40,16 +41,28 @@ class Tp3Controller:
 			self.output_ports[(event.connection.dpid, source)] = event.port
 
 		if dest not in self.graph:
-			#Es un ping de discovery probablemente
+			#Es un ping de discovery probablemente, drop
 			return
 
-		current_path = nx.all_shortest_paths(self.graph, source=event.connection.dpid, target=dest).next()
-		print("PATH:", current_path)
-		next_hop = current_path[1]
+		ipv4 = event.parsed.find('ipv4')
+		flow = (ipv4.srcip, ipv4.dstip)
+
+		if flow in self.flows_to_paths:
+			path = self.flows_to_paths[flow]
+			print("Match in flow table! ", path)
+			sw_index = path.index(event.connection.dpid)
+			print("I'm in Switch ", path[sw_index])
+			next_hop = path[sw_index+1]
+
+		else:
+			path = nx.all_shortest_paths(self.graph, source=event.connection.dpid, target=dest).next()
+			print("Calculated shortest path:", path)
+			next_hop = path[1]
+			self.flows_to_paths[flow] = path
 
 		msg = of.ofp_flow_mod()
 		msg.data = event.ofp
-		msg.match.nw_dst = event.parsed.find('ipv4').dstip
+		msg.match.nw_dst = ipv4.dstip
 		msg.match.dl_type = 0x800
 		#msg.match.tp_dst = 
 		msg.actions.append(of.ofp_action_output(port = self.output_ports[(event.connection.dpid, next_hop)]))
