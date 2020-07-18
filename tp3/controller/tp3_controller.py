@@ -15,7 +15,6 @@ class Tp3Controller:
 		self.output_ports = {}
 		self.flows_to_paths = {}
 		self.round_robin_counter = 0
-		self.packets_per_sw = [0]*100
 		core.call_when_ready(self.start, ('openflow', 'openflow_discovery'))
 
 	def start(self):
@@ -23,22 +22,21 @@ class Tp3Controller:
 		core.openflow_discovery.addListeners(self)
 		print('Started!')
 
-	def _handle_ConnectionUp(self, event):
-		print('---Switch up!')
-
 	def _handle_ConnectionDown(self, event):
-		print('---Switch down!')
-		#Sacarlo del grafo
 		self.graph.remove_node(event.connection.dpid)
+		self.delete_links_to_deleted_switch(event.connection.dpid)
+		self.delete_paths_with_deleted_switch(event.connection.dpid)
 
-		#TODO: sacarlo de los output_ports
-		#TODO: recorrer todos los switches y sacar la entrada de los que tienen
-		#		conexion con el borrado.
+	def delete_links_to_deleted_switch(self, deleted_id):		
+		self.output_ports = {l: p for l, p in self.output_ports.items() if deleted_id not in l}
 
-		# create ofp_flow_mod message to delete all flows
+		#TODO: solo borrar una entrada de los switches afectados
 		msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
 		for connection in core.openflow.connections: 
 			connection.send(msg)
+
+	def delete_paths_with_deleted_switch(self, deleted_id):
+		self.flows_to_paths = {f: p for f, p in self.flows_to_paths.items() if deleted_id not in p}
 
 	def _handle_LinkEvent(self, event):
 		self.graph.add_edge(event.link.dpid1, event.link.dpid2)
@@ -58,6 +56,7 @@ class Tp3Controller:
 			return
 
 		ipv4 = event.parsed.find('ipv4')
+		#TODO: que el flow tenga mas cosas
 		flow = (ipv4.srcip, ipv4.dstip)
 
 		if flow in self.flows_to_paths:
@@ -78,9 +77,6 @@ class Tp3Controller:
 			print("Calculated shortest path:", path)
 			next_hop = path[1]
 			self.flows_to_paths[flow] = path
-
-		self.packets_per_sw[event.connection.dpid] += 1
-		print(self.packets_per_sw)
 
 		msg = of.ofp_flow_mod()
 		msg.data = event.ofp
