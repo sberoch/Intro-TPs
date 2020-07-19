@@ -27,13 +27,14 @@ class Tp3Controller:
 		self.delete_links_to_deleted_switch(event.connection.dpid)
 		self.delete_paths_with_deleted_switch(event.connection.dpid)
 
-	def delete_links_to_deleted_switch(self, deleted_id):		
-		self.output_ports = {l: p for l, p in self.output_ports.items() if deleted_id not in l}
-
-		#TODO: solo borrar una entrada de los switches afectados
+	def delete_links_to_deleted_switch(self, deleted_id):
 		msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
 		for connection in core.openflow.connections: 
-			connection.send(msg)
+			if (connection.dpid,deleted_id) in self.output_ports:
+				print("Borrando links del switch con ID: {}".format(connection.dpid))
+				connection.send(msg)
+
+		self.output_ports = {l: p for l, p in self.output_ports.items() if deleted_id not in l}
 
 	def delete_paths_with_deleted_switch(self, deleted_id):
 		self.flows_to_paths = {f: p for f, p in self.flows_to_paths.items() if deleted_id not in p}
