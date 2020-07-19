@@ -15,6 +15,7 @@ class Tp3Controller:
 		self.output_ports = {}
 		self.flows_to_paths = {}
 		self.round_robin_counter = 0
+		self.hosts_links = {}
 		core.call_when_ready(self.start, ('openflow', 'openflow_discovery'))
 
 	def start(self):
@@ -22,10 +23,22 @@ class Tp3Controller:
 		core.openflow_discovery.addListeners(self)
 		print('Started!')
 
+	def _handle_ConnectionUp(self, event):
+		for link, port in self.hosts_links.items():
+			if event.connection.dpid in link:
+				self.graph.add_edge(link[0], link[1])
+				self.output_ports[link] = port
+
 	def _handle_ConnectionDown(self, event):
+		self.save_links_with_hosts(event.connection.dpid)
 		self.graph.remove_node(event.connection.dpid)
 		self.delete_links_to_deleted_switch(event.connection.dpid)
 		self.delete_paths_with_deleted_switch(event.connection.dpid)
+
+	def save_links_with_hosts(self, deleted_id):
+		for link in self.graph.edges(deleted_id):
+			if not isinstance(link[0], int) or not isinstance(link[1], int):
+				self.hosts_links[link] = self.output_ports[link]
 
 	def delete_links_to_deleted_switch(self, deleted_id):
 		msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
@@ -55,6 +68,8 @@ class Tp3Controller:
 		if dest not in self.graph:
 			#Es un ping de discovery probablemente, drop
 			return
+
+		print(nx.to_dict_of_lists(self.graph))
 
 		ipv4 = event.parsed.find('ipv4')
 		#TODO: que el flow tenga mas cosas
