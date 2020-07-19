@@ -1,11 +1,8 @@
 from pox.core import core
 import pox.openflow.discovery
-
 from pox.lib.util import dpid_to_str
 import pox.lib.packet as pkt
-
 import networkx as nx
-
 import pox.openflow.libopenflow_01 as of
 
 
@@ -24,6 +21,7 @@ class Tp3Controller:
 		print('Started!')
 
 	def _handle_ConnectionUp(self, event):
+		#Reincorporar informacion relacionada los links host-switch
 		for link, port in self.hosts_links.items():
 			if event.connection.dpid in link:
 				self.graph.add_edge(link[0], link[1])
@@ -44,12 +42,13 @@ class Tp3Controller:
 		msg = of.ofp_flow_mod(command=of.OFPFC_DELETE)
 		for connection in core.openflow.connections: 
 			if (connection.dpid,deleted_id) in self.output_ports:
-				print("Borrando links del switch con ID: {}".format(connection.dpid))
 				connection.send(msg)
 
+		#Remover de output_ports los que contienen deleted_id		
 		self.output_ports = {l: p for l, p in self.output_ports.items() if deleted_id not in l}
 
 	def delete_paths_with_deleted_switch(self, deleted_id):
+		#Remover de flows_to_paths los que contienen deleted_id
 		self.flows_to_paths = {f: p for f, p in self.flows_to_paths.items() if deleted_id not in p}
 
 	def _handle_LinkEvent(self, event):
@@ -69,17 +68,24 @@ class Tp3Controller:
 			#Es un ping de discovery probablemente, drop
 			return
 
-		print(nx.to_dict_of_lists(self.graph))
-
 		ipv4 = event.parsed.find('ipv4')
-		#TODO: que el flow tenga mas cosas
-		flow = (ipv4.srcip, ipv4.dstip)
+		udp = event.parsed.find('udp')
+		tcp = event.parsed.find('tcp')
+		tl = None
+		if tcp:
+			tl = tcp
+			flow = (ipv4.srcip, ipv4.dstip, tcp.srcport, tcp.dstport, ipv4.protocol)
+		elif udp:
+			tl = udp
+			flow = (ipv4.srcip, ipv4.dstip, udp.srcport, udp.dstport, ipv4.protocol)
+		else:
+			flow = (ipv4.srcip, ipv4.dstip, ipv4.protocol)
+		
 
 		if flow in self.flows_to_paths:
 			path = self.flows_to_paths[flow]
 			print("Match in flow table! ", path)
 			sw_index = path.index(event.connection.dpid)
-			print("I'm in Switch ", path[sw_index])
 			next_hop = path[sw_index+1]
 
 		else:
@@ -97,8 +103,11 @@ class Tp3Controller:
 		msg = of.ofp_flow_mod()
 		msg.data = event.ofp
 		msg.match.nw_dst = ipv4.dstip
+		msg.match.nw_proto = ipv4.protocol
+		if tl:
+			msg.match.tp_src = tl.srcport
+			msg.match.tp_dst = tl.dstport 
 		msg.match.dl_type = 0x800
-		#msg.match.tp_dst = 
 		msg.actions.append(of.ofp_action_output(port = self.output_ports[(event.connection.dpid, next_hop)]))
 		event.connection.send(msg)
 
